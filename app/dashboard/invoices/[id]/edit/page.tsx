@@ -3,22 +3,16 @@ import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
 import { fetchInvoiceById, fetchCustomers } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 
 export const metadata: Metadata = {
   title: 'Edit Invoice',
 };
  
-export default async function Page(props: { params: Promise<{ id: string}> }) {
-    const params = await props.params;
-    const id = params.id;
-    const [invoice, customers] = await Promise.all([
-      fetchInvoiceById(id),
-      fetchCustomers(),
-    ]);
-    if(!invoice){
-      notFound();
-    }
-
+export default async function Page({ params }: { params: { id: string } }) {
+  const id = params.id;
+ 
   return (
     <main>
       <Breadcrumbs
@@ -31,7 +25,22 @@ export default async function Page(props: { params: Promise<{ id: string}> }) {
           },
         ]}
       />
-      <Form invoice={invoice} customers={customers} />
+      <Suspense fallback={<InvoicesTableSkeleton />}>
+        <EditInvoiceForm id={id} />
+      </Suspense>
     </main>
   );
+}
+
+async function EditInvoiceForm({ id }: { id: string }) {
+  const [invoice, customers] = await Promise.all([
+    fetchInvoiceById(id),
+    fetchCustomers(),
+  ]);
+
+  if (!invoice) {
+    notFound();
+  }
+
+  return <Form invoice={invoice} customers={customers} />;
 }
